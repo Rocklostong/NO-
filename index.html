@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>直播投流有效流量拆分工具 - 真人判断版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen p-4 md:p-8">
+<div class="max-w-5xl mx-auto">
+<header class="mb-8 text-center">
+<h1 class="text-3xl font-bold text-gray-800 mb-2">直播投流有效流量拆分工具</h1>
+<p class="text-gray-500">以「真人判断」为核心 · 排除机器/无效流量 · 聚焦品牌宣传触达</p>
+</header>
+<!-- 算分逻辑 -->
+<div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+<h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+<span class="w-1 h-6 bg-blue-500 mr-3 rounded"></span>运算逻辑：如何判断"真人"有效流量？
+</h2>
+<div class="grid md:grid-cols-2 gap-6 text-gray-700">
+<div>
+<h3 class="font-medium text-gray-800 mb-2">1. 单用户真人评分模型（二维加权）</h3>
+<p class="text-sm leading-relaxed mb-2">从<b>停留</b>和<b>互动</b>两个维度加权评分，排除机器/秒刷流量：</p>
+<ul class="text-sm space-y-1 list-disc pl-5">
+<li><b>异常判定：</b>停留 &lt; 3秒 且无任何互动行为 → 无效流量（0分）</li>
+<li><b>停留分（满分50）：</b>≤10s=0分 / 10-30s=5分 / 30-60s=15分 / 1-3min=30分 / ≥3min=50分</li>
+<li><b>互动分：</b>点赞+0.5 / 评论+5 / 关注+10 / 加粉丝团+15 / 分享+8</li>
+</ul>
+<p class="text-xs text-gray-400 mt-2">核心逻辑：真人不会秒进秒出，真人会有互动痕迹（哪怕一个点赞也是真实信号）</p>
+</div>
+<div>
+<h3 class="font-medium text-gray-800 mb-2">2. 流量分级规则</h3>
+<ul class="text-sm space-y-1 list-disc pl-5 mb-3">
+<li><span class="text-gray-500 font-medium">无效流量（0分）：</span>秒进秒出/机器流量</li>
+<li><span class="text-orange-500 font-medium">低质流量（1~25分）：</span>仅短暂停留，无有效互动</li>
+<li><span class="text-blue-500 font-medium">有效流量（26~60分）：</span>有停留+互动，确认真人触达</li>
+<li><span class="text-green-500 font-medium">高价值流量（≥60分）：</span>深度互动/关注/分享，品牌传播核心</li>
+</ul>
+<h3 class="font-medium text-gray-800 mb-2">3. 核心指标</h3>
+<ul class="text-sm space-y-1 list-disc pl-5">
+<li><b>投流有效率</b> = (有效+高价值) ÷ 总进入人数</li>
+<li><b>有效触达成本</b> = 投流消耗 ÷ (有效+高价值)人数</li>
+<li><b>高价值触达成本</b> = 投流消耗 ÷ 高价值人数</li>
+<li><b>真人CPM</b> = 投流消耗 ÷ (有效+高价值) × 1000</li>
+</ul>
+</div>
+</div>
+</div>
+<!-- 参数配置 -->
+<div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+<h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+<span class="w-1 h-6 bg-purple-500 mr-3 rounded"></span>参数配置（可根据直播间实际情况调整）
+</h2>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+<div><label class="block text-sm text-gray-600 mb-1">有效分阈值</label><input type="number" id="thresholdValid" value="25" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none"><p class="text-xs text-gray-400 mt-1">≥此分为有效流量</p></div>
+<div><label class="block text-sm text-gray-600 mb-1">高价值分阈值</label><input type="number" id="thresholdHigh" value="60" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none"><p class="text-xs text-gray-400 mt-1">≥此分为高价值流量</p></div>
+<div><label class="block text-sm text-gray-600 mb-1">异常停留阈值(秒)</label><input type="number" id="thresholdAbnormal" value="3" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none"><p class="text-xs text-gray-400 mt-1">低于此+无互动=无效</p></div>
+<div><label class="block text-sm text-gray-600 mb-1">高价值停留阈值(秒)</label><input type="number" id="thresholdStayHigh" value="180" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none"><p class="text-xs text-gray-400 mt-1">≥此秒数停留满分</p></div>
+</div>
+</div>
+<!-- 双栏：汇总 + 单用户 -->
+<div class="grid md:grid-cols-2 gap-6 mb-6">
+<div class="bg-white rounded-xl shadow-sm p-6">
+<h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><span class="w-1 h-5 bg-blue-500 mr-2 rounded"></span>快速计算（汇总数据）</h2>
+<div class="space-y-3">
+<div><label class="block text-sm text-gray-600 mb-1">投流总消耗（元）</label><input type="number" id="totalCost" value="1000" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none"></div>
+<div><label class="block text-sm text-gray-600 mb-1">投流总进入人数</label><input type="number" id="totalEnter" value="2000" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none"></div>
+<div><label class="block text-sm text-gray-600 mb-1">平均停留时长（秒）</label><input type="number" id="avgStay" value="45" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none"></div>
+<div><label class="block text-sm text-gray-600 mb-1">互动率（点赞/评论/分享，%）</label><input type="number" id="interactRate" value="8" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none"><p class="text-xs text-gray-400 mt-1">有任一互动行为即计入</p></div>
+<div><label class="block text-sm text-gray-600 mb-1">关注转化率（关注/加粉丝团，%）</label><input type="number" id="followRate" value="3" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none"><p class="text-xs text-gray-400 mt-1">关注或加入粉丝团即计入</p></div>
+<button onclick="calculateSummary()" class="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-lg py-2.5 text-sm font-medium transition cursor-pointer">计算有效流量</button>
+</div>
+</div>
+<div class="bg-white rounded-xl shadow-sm p-6">
+<h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center"><span class="w-1 h-5 bg-purple-500 mr-2 rounded"></span>单用户真人评分模拟</h2>
+<div class="space-y-3">
+<div><label class="block text-sm text-gray-600 mb-1">停留时长（秒）</label><input type="number" id="userStay" value="65" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none"></div>
+<div class="grid grid-cols-2 gap-3">
+<div><label class="block text-sm text-gray-600 mb-1">点赞数</label><input type="number" id="userLike" value="3" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none"></div>
+<div><label class="block text-sm text-gray-600 mb-1">评论数</label><input type="number" id="userComment" value="1" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none"></div>
+<div><label class="block text-sm text-gray-600 mb-1">是否关注</label><select id="userFollow" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none bg-white"><option value="0">否</option><option value="1">是</option></select></div>
+<div><label class="block text-sm text-gray-600 mb-1">是否加粉丝团</label><select id="userFan" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none bg-white"><option value="0">否</option><option value="1">是</option></select></div>
+<div class="col-span-2"><label class="block text-sm text-gray-600 mb-1">是否分享直播间</label><select id="userShare" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none bg-white"><option value="0">否</option><option value="1">是</option></select></div>
+</div>
+<button onclick="calculateUser()" class="w-full bg-purple-500 hover:bg-purple-600 text-white rounded-lg py-2.5 text-sm font-medium transition cursor-pointer">计算真人评分</button>
+</div>
+</div>
+</div>
+<!-- 结果区域 -->
+<div class="bg-white rounded-xl shadow-sm p-6">
+<h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+<span class="w-1 h-6 bg-green-500 mr-3 rounded"></span>计算结果
+</h2>
+<div id="resultArea" class="text-gray-700">
+<p class="text-gray-400 text-center py-8">👆 请输入数据后点击计算按钮查看结果</p>
+</div>
+</div>
+<footer class="mt-8 text-center text-gray-400 text-sm">
+<p>真人有效流量拆分算法 · 聚焦品牌宣传触达效果 · 排除机器无效流量</p>
+</footer>
+<script>
+function getStayScore(stay, ta, th) {
+    if (stay < ta) return -1;
+    if (stay < 10) return 0;
+    if (stay < 30) return 5;
+    if (stay < 60) return 15;
+    if (stay < th) return 30;
+    return 50;
+}
+function getLevelInfo(s, tv, th) {
+    if (s <= 0) return {level:'无效流量',color:'gray',emoji:'🚫',desc:'秒进秒出，无任何行为痕迹，判定为机器/误点流量',bg:'bg-gray-50',tc:'text-gray-500'};
+    if (s < tv) return {level:'低质流量',color:'orange',emoji:'⚠️',desc:'仅短暂停留，无明显互动痕迹',bg:'bg-orange-50',tc:'text-orange-500'};
+    if (s < th) return {level:'有效流量',color:'blue',emoji:'🙋',desc:'有停留+互动痕迹，确认真人触达',bg:'bg-blue-50',tc:'text-blue-500'};
+    return {level:'高价值流量',color:'green',emoji:'🌟',desc:'深度互动/关注/分享，品牌传播核心人群',bg:'bg-green-50',tc:'text-green-500'};
+}
+function calculateSummary() {
+    var c = parseFloat(document.getElementById('totalCost').value)||0;
+    var n = parseInt(document.getElementById('totalEnter').value)||0;
+    var as = parseFloat(document.getElementById('avgStay').value)||0;
+    var ir = parseFloat(document.getElementById('interactRate').value)/100||0;
+    var fr = parseFloat(document.getElementById('followRate').value)/100||0;
+    var tv = parseFloat(document.getElementById('thresholdValid').value)||25;
+    var th = parseFloat(document.getElementById('thresholdHigh').value)||60;
+    var ta = parseFloat(document.getElementById('thresholdAbnormal').value)||3;
+    var ts = parseFloat(document.getElementById('thresholdStayHigh').value)||180;
+    if (n===0) { alert('请输入投流进入人数'); return; }
+    var abn = Math.round(n*0.30);
+    var fc = Math.round(n*fr);
+    var ic = Math.round(n*ir);
+    var hi = fc;
+    var va = Math.max(0, ic - hi);
+    var lo = Math.max(0, n - abn - va - hi);
+    var ss = getStayScore(as, ta, ts);
+    var vt = va + hi;
+    var vr = n>0 ? (vt/n*100).toFixed(2) : '0.00';
+    var hr = n>0 ? (hi/n*100).toFixed(2) : '0.00';
+    var vc = vt>0 ? (c/vt).toFixed(2) : '--';
+    var hc = hi>0 ? (c/hi).toFixed(2) : '--';
+    var cpm = vt>0 ? (c/vt*1000).toFixed(2) : '--';
+    var rr = n>0 ? ((n-abn)/n*100).toFixed(1) : '0.0';
+    var vrNum = parseFloat(vr);
+    var adCl = vrNum>=50 ? 'bg-green-50 text-green-800' : vrNum>=30 ? 'bg-blue-50 text-blue-800' : 'bg-yellow-50 text-yellow-800';
+    var adTxt = vrNum<30 ? '当前真人有效率偏低（<30%），大量投流预算可能被无效/机器流量消耗。建议：① 优化投放定向人群包，提高人群精准度；② 检查直播间封面和标题吸引力；③ 提升开播前5秒的"黄金停留"内容。' : vrNum<50 ? '真人有效率处于中等水平（30%-50%）。建议：① 增加互动引导话术提升互动率；② 设置关注引导福利；③ 持续优化投放时段和定向。' : '👍 真人有效率表现良好（≥50%），品牌宣传触达效果较好。建议：① 可适当放大投流预算；② 重点运营高价值人群做二次触达；③ 持续监控互动率变化。';
+    var h = buildSummaryHTML(abn,lo,va,hi,n,vr,hr,vc,hc,cpm,ss,rr,adCl,adTxt);
+    document.getElementById('resultArea').innerHTML = h;
+}
+function buildSummaryHTML(abn,lo,va,hi,n,vr,hr,vc,hc,cpm,ss,rr,adCl,adTxt) {
+    var h = '';
+    h += '<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">';
+    h += '<div class="bg-gray-50 rounded-xl p-4 text-center border"><p class="text-2xl mb-1">🚫</p><p class="text-xs text-gray-400 mb-1">无效流量（机器/秒退）</p><p class="text-2xl font-bold text-gray-400">'+abn+'</p><p class="text-xs text-gray-400">占比 '+(abn/n*100).toFixed(1)+'%</p></div>';
+    h += '<div class="bg-orange-50 rounded-xl p-4 text-center border"><p class="text-2xl mb-1">⚠️</p><p class="text-xs text-orange-400 mb-1">低质流量（仅路过）</p><p class="text-2xl font-bold text-orange-500">'+lo+'</p><p class="text-xs text-orange-400">占比 '+(lo/n*100).toFixed(1)+'%</p></div>';
+    h += '<div class="bg-blue-50 rounded-xl p-4 text-center border"><p class="text-2xl mb-1">🙋</p><p class="text-xs text-blue-400 mb-1">有效流量（真人触达）</p><p class="text-2xl font-bold text-blue-500">'+va+'</p><p class="text-xs text-blue-400">占比 '+(va/n*100).toFixed(1)+'%</p></div>';
+    h += '<div class="bg-green-50 rounded-xl p-4 text-center border"><p class="text-2xl mb-1">🌟</p><p class="text-xs text-green-400 mb-1">高价值流量（关注/分享）</p><p class="text-2xl font-bold text-green-500">'+hi+'</p><p class="text-xs text-green-400">占比 '+hr+'%</p></div>';
+    h += '</div>';
+    h += '<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">';
+    h += '<div class="border rounded-xl p-4"><p class="text-xs text-gray-400 mb-1">📊 投流整体有效率</p><p class="text-2xl font-bold '+(parseFloat(vr)>=50?'text-green-600':'text-blue-600')+'">'+vr+'%</p></div>';
+    h += '<div class="border rounded-xl p-4"><p class="text-xs text-gray-400 mb-1">💰 有效触达成本</p><p class="text-2xl font-bold text-gray-800">¥'+vc+'/人</p></div>';
+    h += '<div class="border rounded-xl p-4"><p class="text-xs text-gray-400 mb-1">⭐ 高价值触达成本</p><p class="text-2xl font-bold text-gray-800">¥'+hc+'/人</p></div>';
+    h += '<div class="border rounded-xl p-4"><p class="text-xs text-gray-400 mb-1">📈 真人触达 CPM</p><p class="text-2xl font-bold text-gray-800">¥'+cpm+'</p></div>';
+    h += '<div class="border rounded-xl p-4"><p class="text-xs text-gray-400 mb-1">⏱ 平均停留得分</p><p class="text-2xl font-bold '+(ss<0?'text-red-400':ss>=30?'text-green-600':'text-yellow-500')+'">'+(ss<0?'⚠ 异常':ss+'分')+'</p></div>';
+    h += '<div class="border rounded-xl p-4"><p class="text-xs text-gray-400 mb-1">📡 整体触达率</p><p class="text-2xl font-bold text-gray-800">'+rr+'%</p></div>';
+    h += '</div>';
+    h += '<div class="p-4 rounded-xl text-sm '+adCl+'"><p class="font-semibold mb-1">💡 优化建议：</p><p>'+adTxt+'</p>'+ (ss<0?'<p class="mt-2">⚠️ 平均停留时长异常偏低，需要重点关注直播间内容和承接能力！</p>':'') +'</div>';
+    return h;
+}
+function calculateUser() {
+    var stay = parseInt(document.getElementById('userStay').value)||0;
+    var like = parseInt(document.getElementById('userLike').value)||0;
+    var comment = parseInt(document.getElementById('userComment').value)||0;
+    var follow = parseInt(document.getElementById('userFollow').value)||0;
+    var fan = parseInt(document.getElementById('userFan').value)||0;
+    var share = parseInt(document.getElementById('userShare').value)||0;
+    var tv = parseFloat(document.getElementById('thresholdValid').value)||25;
+    var th = parseFloat(document.getElementById('thresholdHigh').value)||60;
+    var ta = parseFloat(document.getElementById('thresholdAbnormal').value)||3;
+    var ts = parseFloat(document.getElementById('thresholdStayHigh').value)||180;
+    var ss = getStayScore(stay, ta, ts);
+    if (ss < 0 && like===0 && comment===0 && follow===0 && fan===0 && share===0) {
+        document.getElementById('resultArea').innerHTML = '<div class="text-center py-8"><p class="text-5xl mb-3">🚫</p><p class="text-2xl font-bold text-gray-400 mb-2">无效流量</p><p class="text-gray-500 mb-1">停留时长仅 <b>'+stay+'</b> 秒 + 零互动行为</p><p class="text-gray-400 text-sm">判定为机器流量或误点进入，对品牌宣传无价值</p><p class="text-xl font-bold text-gray-300 mt-4">总分：0 分</p></div>';
+        return;
+    }
+    var interactScore = like*0.5 + comment*5 + follow*10 + fan*15 + share*8;
+    var totalScore = ss + interactScore;
+    var li = getLevelInfo(totalScore, tv, th);
+    var details = [
+        {name:'⏱ 停留时长',score:ss,max:50,detail:stay+'秒 → '+(ss<0?'异常':ss+'分')},
+        {name:'💬 互动行为',score:interactScore,max:50,detail:[like>0?'点赞+'+ (like*0.5).toFixed(1):'',comment>0?'评论+'+comment*5:'',follow>0?'关注+10':'',fan>0?'粉丝团+15':'',share>0?'分享+8':''].filter(Boolean).join(' · ') || '无互动'}
+    ];
+    var detailHTML = '';
+    for (var i=0;i<details.length;i++) {
+        var d = details[i];
+        detailHTML += '<div class="mb-4"><div class="flex justify-between text-sm mb-1"><span class="font-medium">'+d.name+'</span><span class="text-gray-500">'+d.detail+'</span></div><div class="w-full bg-gray-100 rounded-full h-2.5"><div class="bg-'+li.color+'-500 h-2.5 rounded-full" style="width:'+Math.min(d.score/d.max*100,100)+'%"></div></div></div>';
+    }
+    var signals = [];
+    if (stay>=30) signals.push('✅ 停留≥30秒（真人行为）');
+    if (stay<10 && stay>=ta) signals.push('⚠️ 停留较短，可能是路过');
+    if (comment>0) signals.push('✅ 有评论（强真人信号）');
+    if (follow>0||fan>0) signals.push('🌟 有关注/加团行为（高价值真人）');
+    if (share>0) signals.push('📤 有分享行为（传播型真人）');
+    if (like>0 && comment===0 && follow===0 && share===0 && stay<30) signals.push('⚠️ 仅有点赞且停留短，信号偏弱');
+    if (signals.length===0) signals.push('⚠️ 真人信号不足');
+    var sigHTML = '';
+    for (var j=0;j<signals.length;j++) { sigHTML += '<li>'+signals[j]+'</li>'; }
+    document.getElementById('resultArea').innerHTML =
+        '<div class="text-center mb-6"><p class="text-4xl mb-2">'+li.emoji+'</p><p class="text-3xl font-bold '+li.tc+' mb-2">'+li.level+'</p><p class="text-gray-500 text-sm max-w-md mx-auto">'+li.desc+'</p><div class="mt-4 inline-flex items-center justify-center '+li.bg+' rounded-full px-6 py-2"><span class="text-2xl font-bold '+li.tc+'">'+totalScore+' 分</span></div></div>'+
+        '<div class="max-w-md mx-auto mb-6"><h4 class="text-sm font-medium text-gray-500 mb-3 text-center">📋 分维度得分明细</h4>'+detailHTML+'</div>'+
+        '<div class="max-w-md mx-auto '+li.bg+' rounded-xl p-4"><h4 class="text-sm font-semibold mb-2">🔍 真人信号检测</h4><ul class="text-sm space-y-1">'+sigHTML+'</ul><p class="text-xs text-gray-400 mt-2">评分模型：停留(满分50) + 互动(无上限) = 总分，≥'+tv+'分为有效真人流量</p></div>';
+}
+document.addEventListener('DOMContentLoaded', function() { calculateSummary(); });
+</script>
+</div>
+</body>
+</html>
